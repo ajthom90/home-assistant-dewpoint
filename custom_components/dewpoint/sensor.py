@@ -15,7 +15,7 @@ from homeassistant import util
 from homeassistant.core import callback
 from homeassistant.const import (
     TEMP_CELSIUS, TEMP_FAHRENHEIT, ATTR_FRIENDLY_NAME, ATTR_ENTITY_ID, CONF_SENSORS,
-    EVENT_HOMEASSISTANT_START, ATTR_UNIT_OF_MEASUREMENT, ATTR_TEMPERATURE)
+    EVENT_HOMEASSISTANT_START, ATTR_UNIT_OF_MEASUREMENT, ATTR_TEMPERATURE, ATTR_UNIQUE_ID)
 from homeassistant.helpers.entity import Entity, async_generate_entity_id
 from homeassistant.helpers.event import async_track_state_change
 import homeassistant.helpers.config_validation as cv
@@ -29,6 +29,7 @@ CONF_REL_HUM = 'rel_hum'
 
 SENSOR_SCHEMA = vol.Schema({
     vol.Optional(ATTR_FRIENDLY_NAME): cv.string,
+    vol.Optional(ATTR_UNIQUE_ID): cv.entity_id,
     vol.Required(ATTR_TEMPERATURE): cv.entity_id,
     vol.Required(CONF_REL_HUM): cv.entity_id
 })
@@ -45,13 +46,14 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
         friendly_name = device_config.get(ATTR_FRIENDLY_NAME, device)
         entity_dry_temp = device_config.get(ATTR_TEMPERATURE)
         entity_rel_hum = device_config.get(CONF_REL_HUM)
+        unique_id = device_config.get(ATTR_UNIQUE_ID, device)
 
-        async_add_entities([DewPointSensor(hass, device, friendly_name, entity_dry_temp, entity_rel_hum)])
+        async_add_entities([DewPointSensor(hass, device, friendly_name, unique_id, entity_dry_temp, entity_rel_hum)])
 
 
 class DewPointSensor(Entity):
 
-    def __init__(self, hass, device_id, name, entity_dry_temp, entity_rel_hum):
+    def __init__(self, hass, device_id, name, unique_id, entity_dry_temp, entity_rel_hum):
         """Initialize the sensor."""
         self.hass = hass
         self._state = None
@@ -62,6 +64,7 @@ class DewPointSensor(Entity):
 
         self._entity_dry_temp = entity_dry_temp
         self._entity_rel_hum = entity_rel_hum
+        self._unique_id = unique_id
 
     async def async_added_to_hass(self):
         """Register callbacks."""
@@ -100,6 +103,11 @@ class DewPointSensor(Entity):
     def unit_of_measurement(self):
         """Return the unit of measurement."""
         return TEMP_CELSIUS
+
+    @property
+    def unique_id(self):
+        """Return the unique id of this entity"""
+        return self._unique_id
 
     @callback
     def get_dry_temp(self, entity):
